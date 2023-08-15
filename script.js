@@ -48,7 +48,11 @@ const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
+
 const boundaries = [];
+
+const pellets = [];
+
 const keys = {
     w: {
         pressed: false
@@ -83,18 +87,22 @@ const keys = {
 // ];
 
 const board = [
-    ['-', '-', '-', '-', '-', '-', '-'],
-    ['-', ' ', ' ', ' ', ' ', ' ', '-'],
-    ['-', ' ', '-', ' ', '-', ' ', '-'],
-    ['-', ' ', ' ', ' ', ' ', ' ', '-'],
-    ['-', ' ', '-', ' ', '-', ' ', '-'],
-    ['-', ' ', ' ', ' ', ' ', ' ', '-'],
-    ['-', '-', '-', '-', '-', '-', '-']
+    ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+    ['-', '.', '.', '.', '.', '.', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '.', '.', '.', '.', '.', '-'],
+    ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
 ]
 
 let lastKey = '';
-
-/*----- cached elements  -----*/
 
 /*----- classes -----*/
 class Boundary {
@@ -128,10 +136,49 @@ class PacMan {
         ctx.closePath();
     }
 
-    pacmanMovement() {
+    movement() {
         this.render();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
+    }
+}
+
+class Ghost {
+    constructor({position, velocity, color = 'red'}) {
+        this.color = color;
+        this.position = position;
+        this.velocity = velocity;
+        this.radius = 15;
+        this.prevCollisions = [];
+    }
+
+    render() {
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    movement() {
+        this.render();
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+    }
+}
+
+class Pellet {
+    constructor({position}) {
+        this.position = position;
+        this.radius = 3;
+    }
+
+    render() {
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.closePath();
     }
 }
 
@@ -145,6 +192,19 @@ const pacman = new PacMan ({
         y: 0
     }
 });
+
+const ghosts = [
+    new Ghost ({
+        position: {
+            x: Boundary.width * 4 + Boundary.width / 2,
+            y: Boundary.height + Boundary.height / 2
+        },
+        velocity: {
+            x: 0,
+            y: 0
+        }
+    })
+]
 
 /*----- event listeners -----*/
 window.addEventListener('keydown', ({key}) => {
@@ -187,12 +247,20 @@ window.addEventListener('keyup', ({key}) => {
 
 /*----- functions -----*/
 function init() {
-    pacman.render();
+    animate();
     renderBoard();
 }
 
-function checkCollisions({circle, rectangle}) {
+function checkBoundaryCollisions({circle, rectangle}) {
     return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width)
+}
+
+function checkPelletCollisions({circle1, circle2}) {
+    const dx = circle2.position.x - circle1.position.x;
+    const dy = circle2.position.y - circle1.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    return distance <= circle1.radius + circle2.radius;
 }
 
 function animate() {
@@ -202,7 +270,7 @@ function animate() {
     if (keys.w.pressed && lastKey === 'w') {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkCollisions({circle: {...pacman, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -212,7 +280,7 @@ function animate() {
     } else if (keys.a.pressed && lastKey === 'a') {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkCollisions({circle: {...pacman, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -222,7 +290,7 @@ function animate() {
     } else if (keys.s.pressed && lastKey === 's') {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkCollisions({circle: {...pacman, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -232,7 +300,7 @@ function animate() {
     } else if (keys.d.pressed && lastKey === 'd') {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkCollisions({circle: {...pacman, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -241,16 +309,58 @@ function animate() {
         }
     }
 
+    for (let i = pellets.length - 1; 0 < i; i--) {
+        const pellet = pellets[i];
+        pellet.render();
+
+        if (checkPelletCollisions({circle1: pacman, circle2: pellet})) {
+            console.log('Touching');
+            pellets.splice(i, 1);
+        }
+    }
+
     boundaries.forEach((boundary) => {
         boundary.render();
 
-        if (checkCollisions({circle: pacman, rectangle: boundary})) {
+        if (checkBoundaryCollisions({circle: pacman, rectangle: boundary})) {
             // console.log('Colliding');
             pacman.velocity.x = 0;
             pacman.velocity.y = 0;
         }
     });
-    pacman.pacmanMovement();
+
+    pacman.movement();
+
+    ghosts.forEach((ghost) => {
+        ghost.movement();
+
+        const collisions = [];
+        boundaries.forEach((boundary) => {
+            if (!collisions.includes('right') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
+                collisions.push('right');
+            }
+            if (!collisions.includes('left') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
+                collisions.push('left');
+            }
+            if (!collisions.includes('up') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
+                collisions.push('up');
+            }
+            if (!collisions.includes('down') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
+                collisions.push('down');
+            }
+        });
+        if (collisions.length > ghost.prevCollisions.length)
+            ghost.prevCollisions = collisions;
+
+        if (JSON.stringify(collisions) !== JSON.stringify(ghost.prevCollisions)) {
+            const pathways = ghost.prevCollisions.filter(collision => {
+                return !collisions.includes(collision); 
+            });
+            console.log('test'); 
+        }
+
+        console.log(collisions);
+    });
 }
 
 function renderBoard() {
@@ -268,6 +378,15 @@ function renderBoard() {
                         })
                     );
                     break;
+                case '.':
+                    pellets.push(
+                        new Pellet({
+                            position: {
+                                x: j * Boundary.width + Boundary.width / 2,
+                                y: i * Boundary.height + Boundary.height / 2
+                            }
+                        })
+                    )
             }
         });
     });
@@ -275,4 +394,3 @@ function renderBoard() {
 
 /*----- test area -----*/
 init();
-animate();
