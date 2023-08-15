@@ -49,9 +49,28 @@ const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
-const boundaries = [];
+let animationId;
+let gameOver = false;
+let lastTime = 0;
+const FRAME_RATE = 60; // Desired frame rate (frames per second)
 
-const pellets = [];
+const DIRECTION = {
+    UP: 'up',
+    DOWN: 'down',
+    LEFT: 'left',
+    RIGHT: 'right'
+};
+
+const KEYBOARD = {
+    W: 'w',
+    S: 's',
+    A: 'a',
+    D: 'd',
+    KEYUP: 'arrowup',
+    KEYDOWN: 'arrowdown',
+    KEYRIGHT: 'arrowright',
+    KEYLEFT: 'arrowleft'
+}
 
 const keys = {
     w: {
@@ -67,6 +86,10 @@ const keys = {
         pressed: false
     }
 }
+
+const boundaries = [];
+const pellets = [];
+const powerpellets = [];
 
 /*----- state variables -----*/
 // const board = [
@@ -88,7 +111,7 @@ const keys = {
 
 const board = [
     ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-    ['-', '.', '.', '.', '.', '.', '.', '.', '.', '.', '-'],
+    ['-', '.', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
     ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
     ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
     ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
@@ -98,7 +121,7 @@ const board = [
     ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
     ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
     ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
-    ['-', '.', '.', '.', '.', '.', '.', '.', '.', '.', '-'],
+    ['-', 'p', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
     ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
 ]
 
@@ -144,18 +167,21 @@ class PacMan {
 }
 
 class Ghost {
+    static speed = 2;
     constructor({position, velocity, color = 'red'}) {
         this.color = color;
         this.position = position;
         this.velocity = velocity;
         this.radius = 15;
         this.prevCollisions = [];
+        this.speed = 2;
+        this.vulnerable = false;
     }
 
     render() {
         ctx.beginPath();
         ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
+        ctx.fillStyle = this.vulnerable ? 'blue' : this.color;
         ctx.fill();
         ctx.closePath();
     }
@@ -182,6 +208,21 @@ class Pellet {
     }
 }
 
+class PowerPellet {
+    constructor({position}) {
+        this.position = position;
+        this.radius = 8;
+    }
+
+    render() {
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
 const pacman = new PacMan ({
     position: {
         x: Boundary.width + Boundary.width / 2,
@@ -196,50 +237,83 @@ const pacman = new PacMan ({
 const ghosts = [
     new Ghost ({
         position: {
-            x: Boundary.width * 4 + Boundary.width / 2,
-            y: Boundary.height + Boundary.height / 2
+            x: Boundary.width * 6 + Boundary.width / 2,
+            y: Boundary.height * 5 + Boundary.height / 2
         },
         velocity: {
-            x: 0,
+            x: Ghost.speed,
             y: 0
         }
+    }),
+    new Ghost ({
+        position: {
+            x: Boundary.width * 6 + Boundary.width / 2,
+            y: Boundary.height * 7 + Boundary.height / 2
+        },
+        velocity: {
+            x: Ghost.speed,
+            y: 0
+        },
+        color: 'pink'
+    }),
+    new Ghost ({
+        position: {
+            x: Boundary.width * 4 + Boundary.width / 2,
+            y: Boundary.height * 5 + Boundary.height / 2
+        },
+        velocity: {
+            x: -Ghost.speed,
+            y: 0
+        },
+        color: 'gold'
+    }),
+    new Ghost ({
+        position: {
+            x: Boundary.width * 4 + Boundary.width / 2,
+            y: Boundary.height * 7 + Boundary.height / 2
+        },
+        velocity: {
+            x: -Ghost.speed,
+            y: 0
+        },
+        color: 'aqua'
     })
 ]
 
 /*----- event listeners -----*/
 window.addEventListener('keydown', ({key}) => {
-    switch(key) {
-        case 'w':
+    switch(key.toLowerCase()) {
+        case KEYBOARD.W:
             keys.w.pressed = true;
-            lastKey = 'w';
+            lastKey = KEYBOARD.W;
             break;
-        case 'a':
+        case KEYBOARD.A:
             keys.a.pressed = true;
-            lastKey = 'a';
+            lastKey = KEYBOARD.A;
             break;
-        case 's':
+        case KEYBOARD.S:
             keys.s.pressed = true;
-            lastKey = 's';
+            lastKey = KEYBOARD.S;
             break;
-        case 'd':
+        case KEYBOARD.D:
             keys.d.pressed = true;
-            lastKey = 'd';
+            lastKey = KEYBOARD.D;
             break;
     }
 });
 
 window.addEventListener('keyup', ({key}) => {
-    switch(key) {
-        case 'w':
+    switch(key.toLowerCase()) {
+        case KEYBOARD.W:
             keys.w.pressed = false;
             break;
-        case 'a':
+        case KEYBOARD.A:
             keys.a.pressed = false;
             break;
-        case 's':
+        case KEYBOARD.S:
             keys.s.pressed = false;
             break;
-        case 'd':
+        case KEYBOARD.D:
             keys.d.pressed = false;
             break;
     }
@@ -247,15 +321,15 @@ window.addEventListener('keyup', ({key}) => {
 
 /*----- functions -----*/
 function init() {
-    animate();
     renderBoard();
 }
 
 function checkBoundaryCollisions({circle, rectangle}) {
-    return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width)
+    const spacing = Boundary.width / 2 - circle.radius - 1;
+    return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
 }
 
-function checkPelletCollisions({circle1, circle2}) {
+function checkCircleCollisions({circle1, circle2}) {
     const dx = circle2.position.x - circle1.position.x;
     const dy = circle2.position.y - circle1.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -263,11 +337,22 @@ function checkPelletCollisions({circle1, circle2}) {
     return distance <= circle1.radius + circle2.radius;
 }
 
+function gameLoop(timestamp) {
+    if (gameOver) {
+        return;
+    }
+    const deltaTime = timestamp - lastTime;
+    if (!gameOver && deltaTime >= 1000 / FRAME_RATE) {
+        lastTime = timestamp;
+        animate();
+    }
+    animationId = requestAnimationFrame(gameLoop);
+}
+
 function animate() {
-    requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (keys.w.pressed && lastKey === 'w') {
+    if (keys.w.pressed && lastKey === KEYBOARD.W) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
@@ -277,7 +362,7 @@ function animate() {
                 pacman.velocity.y = -5;
             }
         }
-    } else if (keys.a.pressed && lastKey === 'a') {
+    } else if (keys.a.pressed && lastKey === KEYBOARD.A) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
@@ -287,7 +372,7 @@ function animate() {
                 pacman.velocity.x = -5;
             }
         }
-    } else if (keys.s.pressed && lastKey === 's') {
+    } else if (keys.s.pressed && lastKey === KEYBOARD.S) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
@@ -297,7 +382,7 @@ function animate() {
                 pacman.velocity.y = 5;
             }
         }
-    } else if (keys.d.pressed && lastKey === 'd') {
+    } else if (keys.d.pressed && lastKey === KEYBOARD.D) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
@@ -313,9 +398,38 @@ function animate() {
         const pellet = pellets[i];
         pellet.render();
 
-        if (checkPelletCollisions({circle1: pacman, circle2: pellet})) {
-            console.log('Touching');
+        if (checkCircleCollisions({circle1: pacman, circle2: pellet})) {
+            // console.log('Touching');
             pellets.splice(i, 1);
+        }
+    }
+
+    for (let i = ghosts.length - 1; 0 <= i; i--) {
+        let ghost = ghosts[i];
+        if (checkCircleCollisions({circle1: pacman, circle2: ghost})) {
+            if (ghost.vulnerable) {
+                ghosts.splice(i, 1);
+            } else {
+                gameOver = true;
+                cancelAnimationFrame(animationId);
+                console.log('Game Over');
+            }
+        }
+    }
+
+    for (let i = powerpellets.length - 1; 0 <= i; i--) {
+        const powerpellet = powerpellets[i];
+        powerpellet.render();
+
+        if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
+            powerpellets.splice(i, 1);
+            ghosts.forEach((ghost) => {
+                ghost.vulnerable = true;
+
+                setTimeout(() => {
+                    ghost.vulnerable = false;
+                }, 5000);
+            });
         }
     }
 
@@ -335,31 +449,77 @@ function animate() {
         ghost.movement();
 
         const collisions = [];
-        boundaries.forEach((boundary) => {
-            if (!collisions.includes('right') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
-                collisions.push('right');
-            }
-            if (!collisions.includes('left') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
-                collisions.push('left');
-            }
-            if (!collisions.includes('up') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
-                collisions.push('up');
-            }
-            if (!collisions.includes('down') && checkBoundaryCollisions({circle: {...ghost, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
-                collisions.push('down');
+        const directions = [
+            { direction: DIRECTION.RIGHT, velocity: { x: ghost.speed, y: 0 } },
+            { direction: DIRECTION.LEFT, velocity: { x: -ghost.speed, y: 0 } },
+            { direction: DIRECTION.UP, velocity: { x: 0, y: -ghost.speed } },
+            { direction: DIRECTION.DOWN, velocity: { x: 0, y: ghost.speed } }
+        ];
+        
+        directions.forEach(({ direction, velocity }) => {
+            if (!collisions.includes(direction)) {
+                const collision = boundaries.some(boundary =>
+                    checkBoundaryCollisions({ circle: { ...ghost, velocity }, rectangle: boundary })
+                );
+                if (collision) {
+                    collisions.push(direction);
+                }
             }
         });
+
         if (collisions.length > ghost.prevCollisions.length)
             ghost.prevCollisions = collisions;
 
         if (JSON.stringify(collisions) !== JSON.stringify(ghost.prevCollisions)) {
+            let direction = '';
+        
+            if (ghost.velocity.x > 0) {
+                direction = DIRECTION.RIGHT;
+            } else if (ghost.velocity.x < 0) {
+                direction = DIRECTION.LEFT;
+            } else if (ghost.velocity.y < 0) {
+                direction = DIRECTION.UP;
+            } else if (ghost.velocity.y > 0) {
+                direction = DIRECTION.DOWN;
+            }
+        
+            if (direction) {
+                ghost.prevCollisions.push(direction);
+            }
+
+            // console.log(collisions);
+            // console.log(ghost.prevCollisions);
+
             const pathways = ghost.prevCollisions.filter(collision => {
                 return !collisions.includes(collision); 
             });
-            console.log('test'); 
-        }
+            // console.log({pathways});
 
-        console.log(collisions);
+            const ghostDirection = pathways[Math.floor(Math.random() * pathways.length)]
+
+            // console.log({ghostDirection});
+
+            switch (ghostDirection) {
+                case DIRECTION.DOWN:
+                    ghost.velocity.y = ghost.speed;
+                    ghost.velocity.x = 0;
+                    break;
+                case DIRECTION.UP:
+                    ghost.velocity.y = -ghost.speed;
+                    ghost.velocity.x = 0;
+                    break;
+                case DIRECTION.RIGHT:
+                    ghost.velocity.y = 0;
+                    ghost.velocity.x = ghost.speed;
+                    break;
+                case DIRECTION.LEFT:
+                    ghost.velocity.y = 0;
+                    ghost.velocity.x = -ghost.speed;
+                    break;
+            }
+            ghost.prevCollisions = [];    
+        }
+        // console.log(collisions);
     });
 }
 
@@ -387,6 +547,17 @@ function renderBoard() {
                             }
                         })
                     )
+                    break;
+                case 'p':
+                    powerpellets.push(
+                        new PowerPellet({
+                            position: {
+                                x: j * Boundary.width + Boundary.width / 2,
+                                y: i * Boundary.height + Boundary.height / 2
+                            }
+                        })
+                    )
+                    break;
             }
         });
     });
@@ -394,3 +565,4 @@ function renderBoard() {
 
 /*----- test area -----*/
 init();
+requestAnimationFrame(gameLoop);
