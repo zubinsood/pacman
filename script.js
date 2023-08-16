@@ -49,8 +49,9 @@ const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
+let isFlickering = false;
 let animationId;
-let gameOver = false;
+let freezeGame = false;
 let lastTime = 0;
 const FRAME_RATE = 60; // Desired frame rate (frames per second)
 
@@ -111,7 +112,7 @@ const powerpellets = [];
 
 const board = [
     ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
-    ['-', '.', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
+    ['-', ' ', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
     ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
     ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
     ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
@@ -132,7 +133,7 @@ class Boundary {
     static width = 40;
     static height = 40;
 
-    constructor({position}) {
+    constructor({ position }) {
         this.position = position;
         this.width = 40;
         this.height = 40;
@@ -145,7 +146,7 @@ class Boundary {
 }
 
 class PacMan {
-    constructor({position, velocity}) {
+    constructor({ position, velocity }) {
         this.position = position;
         this.velocity = velocity;
         this.radius = 15;
@@ -168,7 +169,7 @@ class PacMan {
 
 class Ghost {
     static speed = 2;
-    constructor({position, velocity, color = 'red'}) {
+    constructor({ position, velocity, color = 'red' }) {
         this.color = color;
         this.position = position;
         this.velocity = velocity;
@@ -176,6 +177,7 @@ class Ghost {
         this.prevCollisions = [];
         this.speed = 2;
         this.vulnerable = false;
+        this.visible = true;
     }
 
     render() {
@@ -194,7 +196,7 @@ class Ghost {
 }
 
 class Pellet {
-    constructor({position}) {
+    constructor({ position }) {
         this.position = position;
         this.radius = 3;
     }
@@ -209,7 +211,7 @@ class Pellet {
 }
 
 class PowerPellet {
-    constructor({position}) {
+    constructor({ position }) {
         this.position = position;
         this.radius = 8;
     }
@@ -223,7 +225,7 @@ class PowerPellet {
     }
 }
 
-const pacman = new PacMan ({
+const pacman = new PacMan({
     position: {
         x: Boundary.width + Boundary.width / 2,
         y: Boundary.height + Boundary.height / 2
@@ -235,7 +237,7 @@ const pacman = new PacMan ({
 });
 
 const ghosts = [
-    new Ghost ({
+    new Ghost({
         position: {
             x: Boundary.width * 6 + Boundary.width / 2,
             y: Boundary.height * 5 + Boundary.height / 2
@@ -245,7 +247,7 @@ const ghosts = [
             y: 0
         }
     }),
-    new Ghost ({
+    new Ghost({
         position: {
             x: Boundary.width * 6 + Boundary.width / 2,
             y: Boundary.height * 7 + Boundary.height / 2
@@ -256,7 +258,7 @@ const ghosts = [
         },
         color: 'pink'
     }),
-    new Ghost ({
+    new Ghost({
         position: {
             x: Boundary.width * 4 + Boundary.width / 2,
             y: Boundary.height * 5 + Boundary.height / 2
@@ -267,7 +269,7 @@ const ghosts = [
         },
         color: 'gold'
     }),
-    new Ghost ({
+    new Ghost({
         position: {
             x: Boundary.width * 4 + Boundary.width / 2,
             y: Boundary.height * 7 + Boundary.height / 2
@@ -281,8 +283,8 @@ const ghosts = [
 ]
 
 /*----- event listeners -----*/
-window.addEventListener('keydown', ({key}) => {
-    switch(key.toLowerCase()) {
+window.addEventListener('keydown', ({ key }) => {
+    switch (key.toLowerCase()) {
         case KEYBOARD.W:
             keys.w.pressed = true;
             lastKey = KEYBOARD.W;
@@ -302,8 +304,8 @@ window.addEventListener('keydown', ({key}) => {
     }
 });
 
-window.addEventListener('keyup', ({key}) => {
-    switch(key.toLowerCase()) {
+window.addEventListener('keyup', ({ key }) => {
+    switch (key.toLowerCase()) {
         case KEYBOARD.W:
             keys.w.pressed = false;
             break;
@@ -324,25 +326,25 @@ function init() {
     renderBoard();
 }
 
-function checkBoundaryCollisions({circle, rectangle}) {
+function checkBoundaryCollisions({ circle, rectangle }) {
     const spacing = Boundary.width / 2 - circle.radius - 1;
     return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
 }
 
-function checkCircleCollisions({circle1, circle2}) {
+function checkCircleCollisions({ circle1, circle2 }) {
     const dx = circle2.position.x - circle1.position.x;
     const dy = circle2.position.y - circle1.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    
+
     return distance <= circle1.radius + circle2.radius;
 }
 
 function gameLoop(timestamp) {
-    if (gameOver) {
+    if (freezeGame) {
         return;
     }
     const deltaTime = timestamp - lastTime;
-    if (!gameOver && deltaTime >= 1000 / FRAME_RATE) {
+    if (!freezeGame && deltaTime >= 1000 / FRAME_RATE) {
         lastTime = timestamp;
         animate();
     }
@@ -355,7 +357,7 @@ function animate() {
     if (keys.w.pressed && lastKey === KEYBOARD.W) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: -5}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 0, y: -5 } }, rectangle: boundary })) {
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -365,7 +367,7 @@ function animate() {
     } else if (keys.a.pressed && lastKey === KEYBOARD.A) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: -5, y: 0}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: -5, y: 0 } }, rectangle: boundary })) {
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -375,7 +377,7 @@ function animate() {
     } else if (keys.s.pressed && lastKey === KEYBOARD.S) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 0, y: 5}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 0, y: 5 } }, rectangle: boundary })) {
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -385,7 +387,7 @@ function animate() {
     } else if (keys.d.pressed && lastKey === KEYBOARD.D) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
-            if (checkBoundaryCollisions({circle: {...pacman, velocity: {x: 5, y: 0}}, rectangle: boundary})) {
+            if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 5, y: 0 } }, rectangle: boundary })) {
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -394,11 +396,11 @@ function animate() {
         }
     }
 
-    for (let i = pellets.length - 1; 0 < i; i--) {
+    for (let i = pellets.length - 1; 0 <= i; i--) {
         const pellet = pellets[i];
         pellet.render();
 
-        if (checkCircleCollisions({circle1: pacman, circle2: pellet})) {
+        if (checkCircleCollisions({ circle1: pacman, circle2: pellet })) {
             // console.log('Touching');
             pellets.splice(i, 1);
         }
@@ -406,12 +408,20 @@ function animate() {
 
     for (let i = ghosts.length - 1; 0 <= i; i--) {
         let ghost = ghosts[i];
-        if (checkCircleCollisions({circle1: pacman, circle2: ghost})) {
+        if (checkCircleCollisions({ circle1: pacman, circle2: ghost })) {
             if (ghost.vulnerable) {
-                ghosts.splice(i, 1);
+                ghost.visible = false;
+                freezeGame = true;
+                pauseFlickering();
+                setTimeout(() => {
+                    ghosts.splice(i, 1);
+                    freezeGame = false;
+                    resumeFlickering();
+                    requestAnimationFrame(gameLoop);
+                }, 1000);
             } else {
-                gameOver = true;
-                cancelAnimationFrame(animationId);
+                freezeGame = true;
+                pauseFlickering();
                 console.log('Game Over');
             }
         }
@@ -421,22 +431,141 @@ function animate() {
         const powerpellet = powerpellets[i];
         powerpellet.render();
 
+        // if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
+        //     powerpellets.splice(i, 1);
+        //     ghosts.forEach((ghost) => {
+        //         ghost.vulnerable = true;
+        
+        //         if (ghost.vulnerabilityTimeout) {
+        //             clearTimeout(ghost.vulnerabilityTimeout);
+        //         }
+        
+        //         ghost.vulnerabilityTimeout = setTimeout(() => {
+        //             ghost.vulnerable = false;
+        //             ghost.vulnerabilityTimeout = null;
+        //             ghost.visible = true; // Ensure visibility is restored after vulnerability
+        //             console.log('Ghost visibility after 5 seconds:', ghost.visible);
+        //         }, 5000);
+
+        //         const flickerStartDelay = 3000; // Delay for 3 seconds
+        //         const flickerDuration = 2000; // Flicker for 2 seconds
+        //         const flickerInterval = 300; // Interval for flickering in milliseconds
+        //         let flickerTime = 0;
+        //         let flickerTimer = null; // Declare the flickerTimer
+        
+        //         // Start flickering after the specified delay
+        //         setTimeout(() => {
+        //             flickerTimer = setInterval(() => {
+        //                 if (flickerTime >= flickerDuration) {
+        //                     isFlickering = false;
+        //                     clearInterval(flickerTimer); // Stop flickering after duration
+        //                     ghost.visible = true; // Restore visibility
+        //                     console.log('Ghost visibility after flickering:', ghost.visible);
+        //                 } else {
+        //                     isFlickering = true;
+        //                     ghost.visible = !ghost.visible; // Toggle visibility
+        //                 }
+        
+        //                 flickerTime += flickerInterval;
+        //             }, flickerInterval);
+        //         }, flickerStartDelay);
+        
+        //         // Stop flickering at the end of the vulnerability period
+        //         setTimeout(() => {
+        //             isFlickering = false;
+        //             clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
+        //         }, flickerStartDelay + flickerDuration);
+
+        //         if (isFlickering === true) {
+        //             clearInterval(flickerTimer);
+        //             console.log('Ghost visibility after new powerup:', ghost.visible);
+        //         }
+        //     });
+        // }
+        
         if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
             powerpellets.splice(i, 1);
             ghosts.forEach((ghost) => {
                 ghost.vulnerable = true;
-
-                setTimeout(() => {
+        
+                if (ghost.vulnerabilityTimeout) {
+                    clearTimeout(ghost.vulnerabilityTimeout);
+                }
+        
+                ghost.vulnerabilityTimeout = setTimeout(() => {
                     ghost.vulnerable = false;
+                    ghost.vulnerabilityTimeout = null;
+                    ghost.visible = true; // Ensure visibility is restored after vulnerability
+                    console.log('Ghost visibility after 5 seconds:', ghost.visible);
+                }, 5000);
+        
+                const flickerStartDelay = 3000; // Delay for 3 seconds
+                const flickerDuration = 2000; // Flicker for 2 seconds
+                const flickerInterval = 300; // Interval for flickering in milliseconds
+                let flickerStartTime = null;
+                let isFlickeringPaused = false; // Flag to track the paused state of flickering
+        
+                // Start flickering after the specified delay
+                const startFlickering = (timestamp) => {
+                    flickerStartTime = timestamp + flickerStartDelay;
+                    requestAnimationFrame(animateFlickering);
+                };
+        
+                // Animate flickering
+                const animateFlickering = (timestamp) => {
+                    if (!isFlickeringPaused) {
+                        const elapsed = timestamp - flickerStartTime;
+        
+                        if (elapsed >= flickerDuration) {
+                            ghost.visible = true; // Restore visibility
+                            console.log('Ghost visibility after flickering:', ghost.visible);
+                        } else {
+                            if (elapsed % flickerInterval < flickerInterval / 2) {
+                                ghost.visible = true;
+                            } else {
+                                ghost.visible = false;
+                            }
+                            requestAnimationFrame(animateFlickering);
+                        }
+                    }
+                };
+        
+                // Stop flickering at the end of the vulnerability period
+                const stopFlickering = () => {
+                    ghost.visible = true; // Restore visibility
+                };
+        
+                // Pause flickering
+                const pauseFlickering = () => {
+                    isFlickeringPaused = true;
+                };
+        
+                // Resume flickering
+                const resumeFlickering = () => {
+                    isFlickeringPaused = false;
+                    requestAnimationFrame(animateFlickering);
+                };
+        
+                // Conditionally start flickering only if the game is not frozen
+                if (!freezeGame) {
+                    requestAnimationFrame(startFlickering);
+                }
+        
+                setTimeout(() => {
+                    if (!freezeGame) {
+                        stopFlickering();
+                    }
                 }, 5000);
             });
         }
     }
 
+
+
     boundaries.forEach((boundary) => {
         boundary.render();
 
-        if (checkBoundaryCollisions({circle: pacman, rectangle: boundary})) {
+        if (checkBoundaryCollisions({ circle: pacman, rectangle: boundary })) {
             // console.log('Colliding');
             pacman.velocity.x = 0;
             pacman.velocity.y = 0;
@@ -446,7 +575,9 @@ function animate() {
     pacman.movement();
 
     ghosts.forEach((ghost) => {
-        ghost.movement();
+        if (ghost.visible) {
+            ghost.movement();
+        }
 
         const collisions = [];
         const directions = [
@@ -455,7 +586,7 @@ function animate() {
             { direction: DIRECTION.UP, velocity: { x: 0, y: -ghost.speed } },
             { direction: DIRECTION.DOWN, velocity: { x: 0, y: ghost.speed } }
         ];
-        
+
         directions.forEach(({ direction, velocity }) => {
             if (!collisions.includes(direction)) {
                 const collision = boundaries.some(boundary =>
@@ -472,7 +603,7 @@ function animate() {
 
         if (JSON.stringify(collisions) !== JSON.stringify(ghost.prevCollisions)) {
             let direction = '';
-        
+
             if (ghost.velocity.x > 0) {
                 direction = DIRECTION.RIGHT;
             } else if (ghost.velocity.x < 0) {
@@ -482,7 +613,7 @@ function animate() {
             } else if (ghost.velocity.y > 0) {
                 direction = DIRECTION.DOWN;
             }
-        
+
             if (direction) {
                 ghost.prevCollisions.push(direction);
             }
@@ -491,7 +622,7 @@ function animate() {
             // console.log(ghost.prevCollisions);
 
             const pathways = ghost.prevCollisions.filter(collision => {
-                return !collisions.includes(collision); 
+                return !collisions.includes(collision);
             });
             // console.log({pathways});
 
@@ -517,10 +648,16 @@ function animate() {
                     ghost.velocity.x = -ghost.speed;
                     break;
             }
-            ghost.prevCollisions = [];    
+            ghost.prevCollisions = [];
         }
         // console.log(collisions);
     });
+
+    // console.log(pellets.length)
+    if (pellets.length === 0) {
+        freezeGame = true;
+        console.log('You Win!');
+    }
 }
 
 function renderBoard() {
