@@ -453,10 +453,18 @@ function animate() {
                 setTimeout(() => {
                     flickerTimer = setInterval(() => {
                         if (flickerTime >= flickerDuration) {
+<<<<<<< HEAD
+=======
+                            isFlickering = false;
+>>>>>>> main
                             clearInterval(flickerTimer); // Stop flickering after duration
                             ghost.visible = true; // Restore visibility
                             console.log('Ghost visibility after flickering:', ghost.visible);
                         } else {
+<<<<<<< HEAD
+=======
+                            isFlickering = true;
+>>>>>>> main
                             ghost.visible = !ghost.visible; // Toggle visibility
                         }
         
@@ -466,16 +474,25 @@ function animate() {
         
                 // Stop flickering at the end of the vulnerability period
                 setTimeout(() => {
+<<<<<<< HEAD
                     clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
                 }, flickerStartDelay + flickerDuration);
+=======
+                    isFlickering = false;
+                    clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
+                }, flickerStartDelay + flickerDuration);
+
+                if (isFlickering === true) {
+                    clearInterval(flickerTimer);
+                    console.log('Ghost visibility after new powerup:', ghost.visible);
+                }
+>>>>>>> main
             });
         }
         
         
 
     }
-
-
 
     boundaries.forEach((boundary) => {
         boundary.render();
