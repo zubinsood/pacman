@@ -412,16 +412,13 @@ function animate() {
             if (ghost.vulnerable) {
                 ghost.visible = false;
                 freezeGame = true;
-                pauseFlickering();
                 setTimeout(() => {
                     ghosts.splice(i, 1);
                     freezeGame = false;
-                    resumeFlickering();
                     requestAnimationFrame(gameLoop);
                 }, 1000);
             } else {
                 freezeGame = true;
-                pauseFlickering();
                 console.log('Game Over');
             }
         }
@@ -431,58 +428,6 @@ function animate() {
         const powerpellet = powerpellets[i];
         powerpellet.render();
 
-        // if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
-        //     powerpellets.splice(i, 1);
-        //     ghosts.forEach((ghost) => {
-        //         ghost.vulnerable = true;
-        
-        //         if (ghost.vulnerabilityTimeout) {
-        //             clearTimeout(ghost.vulnerabilityTimeout);
-        //         }
-        
-        //         ghost.vulnerabilityTimeout = setTimeout(() => {
-        //             ghost.vulnerable = false;
-        //             ghost.vulnerabilityTimeout = null;
-        //             ghost.visible = true; // Ensure visibility is restored after vulnerability
-        //             console.log('Ghost visibility after 5 seconds:', ghost.visible);
-        //         }, 5000);
-
-        //         const flickerStartDelay = 3000; // Delay for 3 seconds
-        //         const flickerDuration = 2000; // Flicker for 2 seconds
-        //         const flickerInterval = 300; // Interval for flickering in milliseconds
-        //         let flickerTime = 0;
-        //         let flickerTimer = null; // Declare the flickerTimer
-        
-        //         // Start flickering after the specified delay
-        //         setTimeout(() => {
-        //             flickerTimer = setInterval(() => {
-        //                 if (flickerTime >= flickerDuration) {
-        //                     isFlickering = false;
-        //                     clearInterval(flickerTimer); // Stop flickering after duration
-        //                     ghost.visible = true; // Restore visibility
-        //                     console.log('Ghost visibility after flickering:', ghost.visible);
-        //                 } else {
-        //                     isFlickering = true;
-        //                     ghost.visible = !ghost.visible; // Toggle visibility
-        //                 }
-        
-        //                 flickerTime += flickerInterval;
-        //             }, flickerInterval);
-        //         }, flickerStartDelay);
-        
-        //         // Stop flickering at the end of the vulnerability period
-        //         setTimeout(() => {
-        //             isFlickering = false;
-        //             clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
-        //         }, flickerStartDelay + flickerDuration);
-
-        //         if (isFlickering === true) {
-        //             clearInterval(flickerTimer);
-        //             console.log('Ghost visibility after new powerup:', ghost.visible);
-        //         }
-        //     });
-        // }
-        
         if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
             powerpellets.splice(i, 1);
             ghosts.forEach((ghost) => {
@@ -498,69 +443,43 @@ function animate() {
                     ghost.visible = true; // Ensure visibility is restored after vulnerability
                     console.log('Ghost visibility after 5 seconds:', ghost.visible);
                 }, 5000);
-        
+
                 const flickerStartDelay = 3000; // Delay for 3 seconds
                 const flickerDuration = 2000; // Flicker for 2 seconds
                 const flickerInterval = 300; // Interval for flickering in milliseconds
-                let flickerStartTime = null;
-                let isFlickeringPaused = false; // Flag to track the paused state of flickering
+                let flickerTime = 0;
+                let flickerTimer = null; // Declare the flickerTimer
         
                 // Start flickering after the specified delay
-                const startFlickering = (timestamp) => {
-                    flickerStartTime = timestamp + flickerStartDelay;
-                    requestAnimationFrame(animateFlickering);
-                };
-        
-                // Animate flickering
-                const animateFlickering = (timestamp) => {
-                    if (!isFlickeringPaused) {
-                        const elapsed = timestamp - flickerStartTime;
-        
-                        if (elapsed >= flickerDuration) {
+                setTimeout(() => {
+                    flickerTimer = setInterval(() => {
+                        if (flickerTime >= flickerDuration) {
+                            isFlickering = false;
+                            clearInterval(flickerTimer); // Stop flickering after duration
                             ghost.visible = true; // Restore visibility
                             console.log('Ghost visibility after flickering:', ghost.visible);
                         } else {
-                            if (elapsed % flickerInterval < flickerInterval / 2) {
-                                ghost.visible = true;
-                            } else {
-                                ghost.visible = false;
-                            }
-                            requestAnimationFrame(animateFlickering);
+                            isFlickering = true;
+                            ghost.visible = !ghost.visible; // Toggle visibility
                         }
-                    }
-                };
+        
+                        flickerTime += flickerInterval;
+                    }, flickerInterval);
+                }, flickerStartDelay);
         
                 // Stop flickering at the end of the vulnerability period
-                const stopFlickering = () => {
-                    ghost.visible = true; // Restore visibility
-                };
-        
-                // Pause flickering
-                const pauseFlickering = () => {
-                    isFlickeringPaused = true;
-                };
-        
-                // Resume flickering
-                const resumeFlickering = () => {
-                    isFlickeringPaused = false;
-                    requestAnimationFrame(animateFlickering);
-                };
-        
-                // Conditionally start flickering only if the game is not frozen
-                if (!freezeGame) {
-                    requestAnimationFrame(startFlickering);
-                }
-        
                 setTimeout(() => {
-                    if (!freezeGame) {
-                        stopFlickering();
-                    }
-                }, 5000);
+                    isFlickering = false;
+                    clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
+                }, flickerStartDelay + flickerDuration);
+
+                if (isFlickering === true) {
+                    clearInterval(flickerTimer);
+                    console.log('Ghost visibility after new powerup:', ghost.visible);
+                }
             });
         }
     }
-
-
 
     boundaries.forEach((boundary) => {
         boundary.render();
