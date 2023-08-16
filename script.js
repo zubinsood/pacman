@@ -442,7 +442,7 @@ function animate() {
                     ghost.visible = true; // Ensure visibility is restored after vulnerability
                     console.log('Ghost visibility after 5 seconds:', ghost.visible);
                 }, 5000);
-
+        
                 const flickerStartDelay = 3000; // Delay for 3 seconds
                 const flickerDuration = 2000; // Flicker for 2 seconds
                 const flickerInterval = 300; // Interval for flickering in milliseconds
@@ -453,18 +453,10 @@ function animate() {
                 setTimeout(() => {
                     flickerTimer = setInterval(() => {
                         if (flickerTime >= flickerDuration) {
-<<<<<<< HEAD
-=======
-                            isFlickering = false;
->>>>>>> main
                             clearInterval(flickerTimer); // Stop flickering after duration
                             ghost.visible = true; // Restore visibility
                             console.log('Ghost visibility after flickering:', ghost.visible);
                         } else {
-<<<<<<< HEAD
-=======
-                            isFlickering = true;
->>>>>>> main
                             ghost.visible = !ghost.visible; // Toggle visibility
                         }
         
@@ -474,25 +466,13 @@ function animate() {
         
                 // Stop flickering at the end of the vulnerability period
                 setTimeout(() => {
-<<<<<<< HEAD
                     clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
                 }, flickerStartDelay + flickerDuration);
-=======
-                    isFlickering = false;
-                    clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
-                }, flickerStartDelay + flickerDuration);
-
-                if (isFlickering === true) {
-                    clearInterval(flickerTimer);
-                    console.log('Ghost visibility after new powerup:', ghost.visible);
-                }
->>>>>>> main
             });
         }
-        
-        
-
     }
+
+
 
     boundaries.forEach((boundary) => {
         boundary.render();
