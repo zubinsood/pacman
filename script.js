@@ -48,15 +48,17 @@ const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
+const scoreEl = document.getElementById('scoreEl');
 
 let animationId;
 let freezeGame = false;
 let lastTime = 0;
-const FRAME_RATE = 60; // Desired frame rate (frames per second)
-const ANIMATION_SPEED = 0.1; // Adjust animation speed as needed
+let score = 0;
+const FRAME_RATE = 60;
+const ANIMATION_SPEED = 0.1;
 
 const spriteSheet = createImage('./img/spriteSheet.png');
-spriteSheet.onload = init; // Call init when the spriteSheet is loaded
+spriteSheet.onload = init; // THIS CALLS INIT FOR THE FIRST TIME
 
 const spriteFrames = {
     red: {
@@ -211,21 +213,45 @@ const powerpellets = [];
 //     ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
 // ];
 
+// const board = [
+//     ['1', '-', '-', '-', '-', '-', '-', '-', '-', '-', '2'],
+//     ['|', ' ', '.', '.', '.', '.', '.', '.', '.', '.', '|'],
+//     ['|', '.', 'b', '.', '[', '7', ']', '.', 'b', '.', '|'],
+//     ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
+//     ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
+//     ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
+//     ['|', '.', 'b', '.', '[', '+', ']', '.', 'b', '.', '|'],
+//     ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
+//     ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
+//     ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
+//     ['|', '.', 'b', '.', '[', '5', ']', '.', 'b', '.', '|'],
+//     ['|', '.', '.', '.', '.', '.', '.', '.', '.', 'p', '|'],
+//     ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3'],
+// ]
+
 const board = [
-    ['1', '-', '-', '-', '-', '-', '-', '-', '-', '-', '2'],
-    ['|', '.', '.', '.', '.', '.', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '7', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
-    ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
-    ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '+', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
-    ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
-    ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '5', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '.', '.', '.', '.', 'p', '|'],
-    ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3'],
-  ]
+    ['1', '-', '-', '-', '-', '-', '-', '-', '7', '-', '-', '-', '-', '-', '-', '-', '2',],
+    ['|', '.', '.', '.', '.', '.', '.', '.', '|', '.', '.', '.', '.', '.', '.', '.', '|',],
+    ['|', 'p', '[', ']', '.', '[', ']', '.', '_', '.', '[', ']', '.', '[', ']', 'p', '|',],
+    ['|', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '|'],
+    ['|', '.', '[', ']', '.', '^', '.', '[', '7', ']', '.', '^', '.', '[', ']', '.', '|'],
+    ['|', '.', '.', '.', '.', '|', '.', '.', '|', '.', '.', '|', '.', '.', '.', '.', '|',],
+    ['4', '-', '-', '2', '.', '6', ']', ' ', '_', ' ', '[', '8', '.', '1', '-', '-', '3',],
+    [' ', ' ', ' ', '|', '.', '|', ' ', ' ', ' ', ' ', ' ', '|', '.', '|', ' ', ' ', ' ',],
+    [' ', ' ', ' ', '|', '.', '_', ' ', '1', '-', '2', ' ', '_', '.', '|', ' ', ' ', ' ',],
+    [' ', ' ', ' ', '|', '.', ' ', ' ', '4', '-', '3', ' ', ' ', '.', '|', ' ', ' ', ' ',],
+    [' ', ' ', ' ', '|', '.', '^', ' ', ' ', ' ', ' ', ' ', '^', '.', '|', ' ', ' ', ' ',],
+    ['1', '-', '-', '3', '.', '_', ' ', '[', '7', ']', ' ', '_', '.', '4', '-', '-', '2',],
+    ['|', '.', '.', '.', '.', '.', '.', '.', '|', '.', '.', '.', '.', '.', '.', '.', '|',],
+    ['|', '.', '[', '2', '.', '[', ']', '.', '_', '.', '[', ']', '.', '1', ']', '.', '|',],
+    ['|', 'p', '.', '|', '.', '.', '.', '.', ' ', '.', '.', '.', '.', '|', '.', 'p', '|',],
+    ['6', ']', '.', '_', '.', '^', '.', '[', '7', ']', '.', '^', '.', '_', '.', '[', '8',],
+    ['|', '.', '.', '.', '.', '|', '.', '.', '|', '.', '.', '|', '.', '.', '.', '.', '|',],
+    ['|', '.', '[', '-', '-', '5', ']', '.', '_', '.', '[', '5', '-', '-', ']', '.', '|',],
+    ['|', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '|',],
+    ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3',]
+]
+
 
 let lastKey = '';
 
@@ -250,7 +276,7 @@ class PacMan {
     constructor({ position, velocity }) {
         this.position = position;
         this.velocity = velocity;
-        this.radius = 15;
+        this.radius = 12;
         this.radians = 0.75;
         this.chompSpeed = 0.45;
         this.rotation = 0;
@@ -364,8 +390,8 @@ class PowerPellet {
 
 const pacman = new PacMan({
     position: {
-        x: Boundary.width + Boundary.width / 2,
-        y: Boundary.height + Boundary.height / 2
+        x: Boundary.width * 8 + Boundary.width / 2,
+        y: Boundary.height * 14 + Boundary.height / 2
     },
     velocity: {
         x: 0,
@@ -376,8 +402,8 @@ const pacman = new PacMan({
 const ghosts = [
     new Ghost({
         position: {
-            x: Boundary.width * 6 + Boundary.width / 2,
-            y: Boundary.height * 5 + Boundary.height / 2
+            x: Boundary.width * 8 + Boundary.width / 2,
+            y: Boundary.height * 7 + Boundary.height / 2
         },
         velocity: {
             x: Ghost.speed,
@@ -388,11 +414,11 @@ const ghosts = [
     }),
     new Ghost({
         position: {
-            x: Boundary.width * 6 + Boundary.width / 2,
-            y: Boundary.height * 7 + Boundary.height / 2
+            x: Boundary.width * 7 + Boundary.width / 2,
+            y: Boundary.height * 9 + Boundary.height / 2
         },
         velocity: {
-            x: Ghost.speed,
+            x: -Ghost.speed,
             y: 0
         },
         color: 'pink',
@@ -400,11 +426,11 @@ const ghosts = [
     }),
     new Ghost({
         position: {
-            x: Boundary.width * 4 + Boundary.width / 2,
-            y: Boundary.height * 5 + Boundary.height / 2
+            x: Boundary.width * 9 + Boundary.width / 2,
+            y: Boundary.height * 9 + Boundary.height / 2
         },
         velocity: {
-            x: -Ghost.speed,
+            x: Ghost.speed,
             y: 0
         },
         color: 'gold',
@@ -412,11 +438,11 @@ const ghosts = [
     }),
     new Ghost({
         position: {
-            x: Boundary.width * 4 + Boundary.width / 2,
-            y: Boundary.height * 7 + Boundary.height / 2
+            x: Boundary.width * 8 + Boundary.width / 2,
+            y: Boundary.height * 9 + Boundary.height / 2
         },
         velocity: {
-            x: -Ghost.speed,
+            x: Ghost.speed,
             y: 0
         },
         color: 'aqua',
@@ -425,39 +451,65 @@ const ghosts = [
 ]
 
 /*----- event listeners -----*/
-window.addEventListener('keydown', ({ key }) => {
-    switch (key.toLowerCase()) {
+window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    console.log(key)
+
+    // Prevent default behavior of arrow keys (scrolling)
+    if (key === KEYBOARD.UP || key === KEYBOARD.DOWN || key === KEYBOARD.LEFT || key === KEYBOARD.RIGHT) {
+        console.log('Arrow Keys are Held')
+        event.preventDefault(); // Corrected this line
+    }
+
+    switch (key) {
         case KEYBOARD.W:
+        case KEYBOARD.UP:
             keys.w.pressed = true;
             lastKey = KEYBOARD.W;
             break;
         case KEYBOARD.A:
+        case KEYBOARD.LEFT:
             keys.a.pressed = true;
             lastKey = KEYBOARD.A;
             break;
         case KEYBOARD.S:
+        case KEYBOARD.DOWN:
             keys.s.pressed = true;
             lastKey = KEYBOARD.S;
             break;
         case KEYBOARD.D:
+        case KEYBOARD.RIGHT:
             keys.d.pressed = true;
             lastKey = KEYBOARD.D;
             break;
     }
 });
 
-window.addEventListener('keyup', ({ key }) => {
-    switch (key.toLowerCase()) {
+window.addEventListener('keyup', (event) => {
+    const key = event.key.toLowerCase();
+    console.log(key)
+
+    // Prevent default behavior of arrow keys (scrolling)
+    if (key === KEYBOARD.UP || key === KEYBOARD.DOWN || key === KEYBOARD.LEFT || key === KEYBOARD.RIGHT) {
+        event.preventDefault(); // Corrected this line
+    }
+
+    switch (key) {
         case KEYBOARD.W:
+        case KEYBOARD.UP:
+            console.log('test');
             keys.w.pressed = false;
             break;
         case KEYBOARD.A:
+        case KEYBOARD.LEFT:
             keys.a.pressed = false;
             break;
         case KEYBOARD.S:
+        case KEYBOARD.DOWN:
             keys.s.pressed = false;
             break;
         case KEYBOARD.D:
+        case KEYBOARD.RIGHT:
             keys.d.pressed = false;
             break;
     }
@@ -476,7 +528,10 @@ function createImage(src) {
 
 function checkBoundaryCollisions({ circle, rectangle }) {
     const spacing = Boundary.width / 2 - circle.radius - 1;
-    return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
+    return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing 
+        && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing 
+        && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing 
+        && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
 }
 
 function checkCircleCollisions({ circle1, circle2 }) {
@@ -501,11 +556,14 @@ function gameLoop(timestamp) {
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
+    // console.log('Last Key:', lastKey)
+    // console.log(pacman.velocity.x, pacman.velocity.y)
     if (keys.w.pressed && lastKey === KEYBOARD.W) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 0, y: -5 } }, rectangle: boundary })) {
+                // console.log('COLLDING UP')
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -516,6 +574,7 @@ function animate() {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: -5, y: 0 } }, rectangle: boundary })) {
+                // console.log('COLLDING LEFT')
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -526,6 +585,7 @@ function animate() {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 0, y: 5 } }, rectangle: boundary })) {
+                // console.log('COLLDING DOWN')
                 pacman.velocity.y = 0;
                 break;
             } else {
@@ -536,6 +596,7 @@ function animate() {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
             if (checkBoundaryCollisions({ circle: { ...pacman, velocity: { x: 5, y: 0 } }, rectangle: boundary })) {
+                // console.log('COLLDING RIGHT')
                 pacman.velocity.x = 0;
                 break;
             } else {
@@ -544,17 +605,20 @@ function animate() {
         }
     }
 
-    for (let i = pellets.length - 1; 0 <= i; i--) {
+    for (let i = pellets.length - 1; i >= 0; i--) {
         const pellet = pellets[i];
         pellet.render();
 
         if (checkCircleCollisions({ circle1: pacman, circle2: pellet })) {
+            // console.log(pellets.length)
             // console.log('Touching');
             pellets.splice(i, 1);
+            score += 10;
+            scoreEl.innerHTML = score;
         }
     }
 
-    for (let i = ghosts.length - 1; 0 <= i; i--) {
+    for (let i = ghosts.length - 1; i >= 0; i--) {
         let ghost = ghosts[i];
         if (checkCircleCollisions({ circle1: pacman, circle2: ghost })) {
             if (ghost.vulnerable) {
@@ -578,6 +642,8 @@ function animate() {
 
         if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
             powerpellets.splice(i, 1);
+            score += 50;
+            scoreEl.innerHTML = score;
             ghosts.forEach((ghost) => {
                 ghost.vulnerable = true;
         
@@ -588,15 +654,13 @@ function animate() {
                 ghost.vulnerabilityTimeout = setTimeout(() => {
                     ghost.vulnerable = false;
                     ghost.vulnerabilityTimeout = null;
-                    ghost.visible = true; // Ensure visibility is restored after vulnerability
+                    ghost.visible = true;
                     // console.log('Ghost visibility after 5 seconds:', ghost.visible);
                 }, 5000);
 
             });
         }
     }
-
-    checkWinner();
 
     boundaries.forEach((boundary) => {
         boundary.render();
@@ -712,6 +776,8 @@ function animate() {
     } else if (pacman.velocity.y < 0) {
         pacman.rotation = Math.PI * 1.5;
     }
+
+    checkWinner();
 }
 
 function checkWinner() {
@@ -726,9 +792,11 @@ function checkWinner() {
 }
 
 function renderBoard() {
+    // console.log('Im being called this many times')
     boundaries.length = 0;
     board.forEach((row, i) => {
         row.forEach((symbol, j) => {
+            // console.log('Looped this many times')
             switch (symbol) {
                 case '-':
                     boundaries.push(
@@ -935,5 +1003,4 @@ function renderBoard() {
 }
 
 /*----- test area -----*/
-init();
 requestAnimationFrame(gameLoop);
