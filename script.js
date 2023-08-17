@@ -53,6 +53,43 @@ let animationId;
 let freezeGame = false;
 let lastTime = 0;
 const FRAME_RATE = 60; // Desired frame rate (frames per second)
+// const ANIMATION_SPEED = 0.1; // Adjust animation speed as needed
+
+const spriteSheet = createImage('./img/spriteSheet.png');
+spriteSheet.onload = init; // Call init when the spriteSheet is loaded
+
+const spriteFrames = {
+    red: {
+        right: { x: 0, y: 0, width: 180, height: 180 },
+        up: { x: 180, y: 0, width: 180, height: 180 },
+        down: { x: 0, y: 180, width: 180, height: 180 },
+        left: { x: 180, y: 180, width: 180, height: 180 }
+    },
+    pink: {
+        right: { x: 0, y: 360, width: 180, height: 180 },
+        up: { x: 180, y: 360, width: 180, height: 180 },
+        down: { x: 0, y: 540, width: 180, height: 180 },
+        left: { x: 180, y: 540, width: 180, height: 180 }
+    },
+    gold: {
+        right: { x: 390, y: 360, width: 180, height: 180 },
+        up: { x: 570, y: 360, width: 180, height: 180 },
+        down: { x: 390, y: 540, width: 180, height: 180 },
+        left: { x: 570, y: 540, width: 180, height: 180 }
+    },
+    aqua: {
+        right: { x: 390, y: 0, width: 180, height: 180 },
+        up: { x: 570, y: 0, width: 180, height: 180 },
+        down: { x: 390, y: 180, width: 180, height: 180 },
+        left: { x: 570, y: 180, width: 180, height: 180 }
+    },
+};
+
+const ghostColor = 'red';
+const ghostDirection = 'up';
+
+const frame = spriteFrames[ghostColor][ghostDirection];
+console.log('TESTING:', frame); // Outputs: { x: 0, y: 0, width: 64, height: 64 }
 
 const DIRECTION = {
     UP: 'up',
@@ -192,18 +229,33 @@ class Ghost {
         this.speed = 2;
         this.vulnerable = false;
         this.visible = true;
+        this.currentFrame = 0;
     }
 
-    render() {
-        ctx.beginPath();
-        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.vulnerable ? 'blue' : this.color;
-        ctx.fill();
-        ctx.closePath();
+    render(ghostFrameDirection) {
+        const frame = spriteFrames[this.color][ghostFrameDirection];
+        ctx.drawImage(
+            spriteSheet,
+            frame.x,
+            frame.y,
+            frame.width,
+            frame.height,
+            this.position.x - this.radius,
+            this.position.y - this.radius,
+            this.radius * 2,
+            this.radius * 2
+        );
     }
 
-    movement() {
-        this.render();
+    // animateSprite() {
+    //     this.currentFrame += ANIMATION_SPEED;
+    //     if (this.currentFrame >= spriteFrames.length) {
+    //         this.currentFrame = 0;
+    //     }
+    // }
+
+    movement(ghostFrameDirection) {
+        this.render(ghostFrameDirection);
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
     }
@@ -259,7 +311,9 @@ const ghosts = [
         velocity: {
             x: Ghost.speed,
             y: 0
-        }
+        },
+        color: 'red',
+        currentFrame: 0
     }),
     new Ghost({
         position: {
@@ -270,7 +324,8 @@ const ghosts = [
             x: Ghost.speed,
             y: 0
         },
-        color: 'pink'
+        color: 'pink',
+        currentFrame: 0
     }),
     new Ghost({
         position: {
@@ -281,7 +336,8 @@ const ghosts = [
             x: -Ghost.speed,
             y: 0
         },
-        color: 'gold'
+        color: 'gold',
+        currentFrame: 0
     }),
     new Ghost({
         position: {
@@ -292,7 +348,8 @@ const ghosts = [
             x: -Ghost.speed,
             y: 0
         },
-        color: 'aqua'
+        color: 'aqua',
+        currentFrame: 0
     })
 ]
 
@@ -484,7 +541,20 @@ function animate() {
 
     ghosts.forEach((ghost) => {
         if (ghost.visible) {
-            ghost.movement();
+            // ghost.animateSprite();
+            if (ghost.velocity.x > 0) {
+                console.log('ghost speed:', ghost.velocity.x)
+                ghost.movement(DIRECTION.RIGHT);
+            } else if (ghost.velocity.x < 0) {
+                console.log('ghost speed:',ghost.velocity.x)
+                ghost.movement(DIRECTION.LEFT);
+            } else if (ghost.velocity.y < 0) {
+                console.log('ghost speed:',ghost.velocity.y)
+                ghost.movement(DIRECTION.UP);
+            } else if (ghost.velocity.y > 0) {
+                console.log('ghost speed:',ghost.velocity.y)
+                ghost.movement(DIRECTION.DOWN);
+            }
         }
 
         const collisions = [];
