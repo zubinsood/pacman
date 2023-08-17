@@ -53,43 +53,108 @@ let animationId;
 let freezeGame = false;
 let lastTime = 0;
 const FRAME_RATE = 60; // Desired frame rate (frames per second)
-// const ANIMATION_SPEED = 0.1; // Adjust animation speed as needed
+const ANIMATION_SPEED = 0.1; // Adjust animation speed as needed
 
 const spriteSheet = createImage('./img/spriteSheet.png');
 spriteSheet.onload = init; // Call init when the spriteSheet is loaded
 
 const spriteFrames = {
     red: {
-        right: { x: 0, y: 0, width: 180, height: 180 },
-        up: { x: 180, y: 0, width: 180, height: 180 },
-        down: { x: 0, y: 180, width: 180, height: 180 },
-        left: { x: 180, y: 180, width: 180, height: 180 }
+        right: {
+            0: { x: 0, y: 0, width: 40, height: 40 },
+            1: { x: 0, y: 50, width: 40, height: 40 }
+        },
+        up: {
+            0: { x: 0, y: 280, width: 40, height: 40 },
+            1: { x: 0, y: 330, width: 40, height: 40 }
+        },
+        down: {
+            0: { x: 0, y: 95, width: 40, height: 40 },
+            1: { x: 0, y: 140, width: 40, height: 40 }
+        },
+        left: {
+            0: { x: 0, y: 190, width: 40, height: 40 },
+            1: { x: 0, y: 235, width: 40, height: 40 }
+        }
     },
     pink: {
-        right: { x: 0, y: 360, width: 180, height: 180 },
-        up: { x: 180, y: 360, width: 180, height: 180 },
-        down: { x: 0, y: 540, width: 180, height: 180 },
-        left: { x: 180, y: 540, width: 180, height: 180 }
+        right: {
+            0: { x: 45, y: 0, width: 40, height: 40 },
+            1: { x: 45, y: 50, width: 40, height: 40 }
+        },
+        up: {
+            0: { x: 45, y: 280, width: 40, height: 40 },
+            1: { x: 45, y: 330, width: 40, height: 40 }
+        },
+        down: {
+            0: { x: 45, y: 95, width: 40, height: 40 },
+            1: { x: 45, y: 140, width: 40, height: 40 }
+        },
+        left: {
+            0: { x: 45, y: 190, width: 40, height: 40 },
+            1: { x: 45, y: 235, width: 40, height: 40 }
+        }
     },
     gold: {
-        right: { x: 390, y: 360, width: 180, height: 180 },
-        up: { x: 570, y: 360, width: 180, height: 180 },
-        down: { x: 390, y: 540, width: 180, height: 180 },
-        left: { x: 570, y: 540, width: 180, height: 180 }
+        right: {
+            0: { x: 140, y: 0, width: 40, height: 40 },
+            1: { x: 140, y: 50, width: 40, height: 40 }
+        },
+        up: {
+            0: { x: 140, y: 280, width: 40, height: 40 },
+            1: { x: 140, y: 330, width: 40, height: 40 }
+        },
+        down: {
+            0: { x: 140, y: 95, width: 40, height: 40 },
+            1: { x: 140, y: 140, width: 40, height: 40 }
+        },
+        left: {
+            0: { x: 140, y: 190, width: 40, height: 40 },
+            1: { x: 140, y: 235, width: 40, height: 40 }
+        }
     },
     aqua: {
-        right: { x: 390, y: 0, width: 180, height: 180 },
-        up: { x: 570, y: 0, width: 180, height: 180 },
-        down: { x: 390, y: 180, width: 180, height: 180 },
-        left: { x: 570, y: 180, width: 180, height: 180 }
+        right: {
+            0: { x: 90, y: 0, width: 40, height: 40 },
+            1: { x: 90, y: 50, width: 40, height: 40 }
+        },
+        up: {
+            0: { x: 90, y: 280, width: 40, height: 40 },
+            1: { x: 90, y: 330, width: 40, height: 40 }
+        },
+        down: {
+            0: { x: 90, y: 95, width: 40, height: 40 },
+            1: { x: 90, y: 140, width: 40, height: 40 }
+        },
+        left: {
+            0: { x: 90, y: 190, width: 40, height: 40 },
+            1: { x: 90, y: 235, width: 40, height: 40 }
+        }
     },
+    vulnerable: {
+        right: {
+            0: { x: 0, y: 520, width: 40, height: 40 },
+            1: { x: 0, y: 565, width: 40, height: 40 }
+        },
+        up: {
+            0: { x: 0, y: 520, width: 40, height: 40 },
+            1: { x: 0, y: 565, width: 40, height: 40 }
+        },
+        down: {
+            0: { x: 0, y: 520, width: 40, height: 40 },
+            1: { x: 0, y: 565, width: 40, height: 40 }
+        },
+        left: {
+            0: { x: 0, y: 520, width: 40, height: 40 },
+            1: { x: 0, y: 565, width: 40, height: 40 }
+        },
+        white: {
+            0: { x: 45, y: 520, width: 40, height: 40 },
+            1: { x: 45, y: 565, width: 40, height: 40 }
+        }
+    }
 };
-
-const ghostColor = 'red';
-const ghostDirection = 'up';
-
-const frame = spriteFrames[ghostColor][ghostDirection];
-console.log('TESTING:', frame); // Outputs: { x: 0, y: 0, width: 64, height: 64 }
+// console.log('TESTING:', frame); // Outputs: { x: 0, y: 0, width: 64, height: 64 }
 
 const DIRECTION = {
     UP: 'up',
@@ -233,7 +298,13 @@ class Ghost {
     }
 
     render(ghostFrameDirection) {
-        const frame = spriteFrames[this.color][ghostFrameDirection];
+        let frame;
+        // console.log(this.color, ghostFrameDirection, Math.floor(this.currentFrame));
+        if (this.vulnerable) {
+            frame = spriteFrames['vulnerable'][ghostFrameDirection][Math.floor(this.currentFrame)];
+        } else {
+            frame = spriteFrames[this.color][ghostFrameDirection][Math.floor(this.currentFrame)];
+        }
         ctx.drawImage(
             spriteSheet,
             frame.x,
@@ -247,12 +318,12 @@ class Ghost {
         );
     }
 
-    // animateSprite() {
-    //     this.currentFrame += ANIMATION_SPEED;
-    //     if (this.currentFrame >= spriteFrames.length) {
-    //         this.currentFrame = 0;
-    //     }
-    // }
+    animateSprite() {
+        this.currentFrame += ANIMATION_SPEED;
+        if (this.currentFrame >= 2) {
+            this.currentFrame = 0;
+        }
+    }
 
     movement(ghostFrameDirection) {
         this.render(ghostFrameDirection);
@@ -518,7 +589,7 @@ function animate() {
                     ghost.vulnerable = false;
                     ghost.vulnerabilityTimeout = null;
                     ghost.visible = true; // Ensure visibility is restored after vulnerability
-                    console.log('Ghost visibility after 5 seconds:', ghost.visible);
+                    // console.log('Ghost visibility after 5 seconds:', ghost.visible);
                 }, 5000);
 
             });
@@ -541,18 +612,18 @@ function animate() {
 
     ghosts.forEach((ghost) => {
         if (ghost.visible) {
-            // ghost.animateSprite();
+            ghost.animateSprite();
             if (ghost.velocity.x > 0) {
-                console.log('ghost speed:', ghost.velocity.x)
+                // console.log('ghost speed:', ghost.velocity.x)
                 ghost.movement(DIRECTION.RIGHT);
             } else if (ghost.velocity.x < 0) {
-                console.log('ghost speed:',ghost.velocity.x)
+                // console.log('ghost speed:',ghost.velocity.x)
                 ghost.movement(DIRECTION.LEFT);
             } else if (ghost.velocity.y < 0) {
-                console.log('ghost speed:',ghost.velocity.y)
+                // console.log('ghost speed:',ghost.velocity.y)
                 ghost.movement(DIRECTION.UP);
             } else if (ghost.velocity.y > 0) {
-                console.log('ghost speed:',ghost.velocity.y)
+                // console.log('ghost speed:',ghost.velocity.y)
                 ghost.movement(DIRECTION.DOWN);
             }
         }
