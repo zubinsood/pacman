@@ -110,20 +110,20 @@ const powerpellets = [];
 // ];
 
 const board = [
-    ['1', '-', '-', '-', '-', '-', '-', '-', '-', '-', '2'],
-    ['|', '.', '.', '.', '.', '.', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '7', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
-    ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
-    ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '+', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '_', '.', '.', '.', '.', '|'],
-    ['|', '.', '[', ']', '.', '.', '.', '[', ']', '.', '|'],
-    ['|', '.', '.', '.', '.', '^', '.', '.', '.', '.', '|'],
-    ['|', '.', 'b', '.', '[', '5', ']', '.', 'b', '.', '|'],
-    ['|', '.', '.', '.', '.', '.', '.', '.', '.', 'p', '|'],
-    ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3'],
-  ]
+    ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+    ['-', ' ', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '-', '.', '.', '.', '-', '-', '.', '-'],
+    ['-', '.', '.', '.', '.', '-', '.', '.', '.', '.', '-'],
+    ['-', '.', '-', '.', '-', '-', '-', '.', '-', '.', '-'],
+    ['-', 'p', '.', '.', '.', '.', '.', '.', '.', 'p', '-'],
+    ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']
+]
 
 let lastKey = '';
 
@@ -132,15 +132,15 @@ class Boundary {
     static width = 40;
     static height = 40;
 
-    constructor({ position, image }) {
+    constructor({ position }) {
         this.position = position;
         this.width = 40;
         this.height = 40;
-        this.image = image;
     }
 
     render() {
-        ctx.drawImage(this.image, this.position.x, this.position.y);
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(this.position.x, this.position.y, this.width, this.height);
     }
 }
 
@@ -149,35 +149,20 @@ class PacMan {
         this.position = position;
         this.velocity = velocity;
         this.radius = 15;
-        this.radians = 0.75;
-        this.chompSpeed = 0.45;
-        this.rotation = 0;
     }
 
     render() {
-        ctx.save();
-        ctx.translate(this.position.x, this.position.y);
-        ctx.rotate(this.rotation);
-        ctx.translate(-this.position.x, -this.position.y);
         ctx.beginPath();
-        ctx.arc(this.position.x, this.position.y, this.radius, this.radians, Math.PI * 2 - this.radians);
-        ctx.lineTo(this.position.x - 5, this.position.y);
+        ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = 'yellow';
         ctx.fill();
         ctx.closePath();
-        ctx.restore();
     }
 
     movement() {
         this.render();
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-
-        if (this.radians < 0 || this.radians > 0.75) {
-            this.chompSpeed = -this.chompSpeed;
-        }
-
-        this.radians += this.chompSpeed;
     }
 }
 
@@ -340,12 +325,6 @@ function init() {
     renderBoard();
 }
 
-function createImage(src) {
-    const image = new Image()
-    image.src = src
-    return image
-  }
-
 function checkBoundaryCollisions({ circle, rectangle }) {
     const spacing = Boundary.width / 2 - circle.radius - 1;
     return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
@@ -463,12 +442,37 @@ function animate() {
                     ghost.visible = true; // Ensure visibility is restored after vulnerability
                     console.log('Ghost visibility after 5 seconds:', ghost.visible);
                 }, 5000);
-
+        
+                const flickerStartDelay = 3000; // Delay for 3 seconds
+                const flickerDuration = 2000; // Flicker for 2 seconds
+                const flickerInterval = 300; // Interval for flickering in milliseconds
+                let flickerTime = 0;
+                let flickerTimer = null; // Declare the flickerTimer
+        
+                // Start flickering after the specified delay
+                setTimeout(() => {
+                    flickerTimer = setInterval(() => {
+                        if (flickerTime >= flickerDuration) {
+                            clearInterval(flickerTimer); // Stop flickering after duration
+                            ghost.visible = true; // Restore visibility
+                            console.log('Ghost visibility after flickering:', ghost.visible);
+                        } else {
+                            ghost.visible = !ghost.visible; // Toggle visibility
+                        }
+        
+                        flickerTime += flickerInterval;
+                    }, flickerInterval);
+                }, flickerStartDelay);
+        
+                // Stop flickering at the end of the vulnerability period
+                setTimeout(() => {
+                    clearInterval(flickerTimer); // Ensure flickering stops at the end of the vulnerability period
+                }, flickerStartDelay + flickerDuration);
             });
         }
     }
 
-    checkWinner();
+
 
     boundaries.forEach((boundary) => {
         boundary.render();
@@ -561,25 +565,9 @@ function animate() {
         // console.log(collisions);
     });
 
-    // PacMan Chomp
-    if (pacman.velocity.x > 0) {
-        pacman.rotation = 0;
-    } else if (pacman.velocity.x < 0) {
-        pacman.rotation = Math.PI;
-    } else if (pacman.velocity.y > 0) {
-        pacman.rotation = Math.PI / 2;
-    } else if (pacman.velocity.y < 0) {
-        pacman.rotation = Math.PI * 1.5;
-    }
-}
-
-function checkWinner() {
     // console.log(pellets.length)
     if (pellets.length === 0 && powerpellets.length === 0) {
-        cancelAnimationFrame(animationId);
-        setTimeout(() => {
-            freezeGame = true;
-        }, 100);
+        freezeGame = true;
         console.log('You Win!');
     }
 }
@@ -595,178 +583,9 @@ function renderBoard() {
                             position: {
                                 x: Boundary.width * j,
                                 y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeHorizontal.png'),
+                            }
                         })
-                    )
-                    break;
-                case '|':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeVertical.png'),
-                        })
-                    )
-                    break;
-                case '1':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeCorner1.png'),
-                        })
-                    )
-                    break;
-                case '2':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeCorner2.png'),
-                        })
-                    )
-                    break;
-                case '3':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeCorner3.png'),
-                        })
-                    )
-                    break;
-                case '4':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/pipeCorner4.png'),
-                        })
-                    )
-                    break;
-                case 'b':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: Boundary.width * j,
-                                y: Boundary.height * i
-                            },
-                            image: createImage('./img/block.png'),
-                        })
-                    )
-                    break;
-                case '[':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/capLeft.png'),
-                        })
-                    )
-                    break;
-                case ']':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/capRight.png'),
-                        })
-                    )
-                    break;
-                case '_':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/capBottom.png'),
-                        })
-                    )
-                    break;
-                case '^':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/capTop.png'),
-                        })
-                    )
-                    break;
-                case '+':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/pipeCross.png'),
-                        })
-                    )
-                    break;
-                case '5':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            color: 'blue',
-                            image: createImage('./img/pipeConnectorTop.png'),
-                        })
-                    )
-                    break;
-                case '6':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            color: 'blue',
-                            image: createImage('./img/pipeConnectorRight.png'),
-                        })
-                    )
-                    break;
-                case '7':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            color: 'blue',
-                            image: createImage('./img/pipeConnectorBottom.png'),
-                        })
-                    )
-                    break;
-                case '8':
-                    boundaries.push(
-                        new Boundary({
-                            position: {
-                                x: j * Boundary.width,
-                                y: i * Boundary.height
-                            },
-                            image: createImage('./img/pipeConnectorLeft.png'),
-                        })
-                    )
+                    );
                     break;
                 case '.':
                     pellets.push(
