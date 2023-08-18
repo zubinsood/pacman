@@ -43,7 +43,7 @@ There is a score count for cosmetic purposes currently. Each pellet is 10 points
 - Lead Eric
 - Geometry
 - Google Images for Board Elements / Online Photo Editor to manipulate PNGs
-- ClassicGamingCC for Pac-Man Sounds
+- [ClassicGamingCC for Pac-Man Sounds](https://www.classicgaming.cc/classics/pac-man/sounds)
 
 # License
 
