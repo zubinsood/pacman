@@ -589,6 +589,20 @@ function checkCircleCollisions({ circle1, circle2 }) {
     return hypot <= circle1.radius + circle2.radius;
 }
 
+function areArraysEqual(array1, array2) {
+    if (array1.length !== array2.length) {
+        return false;
+    }
+
+    for (let i = 0; i < array1.length; i++) {
+        if (array1[i] !== array2[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function gameLoop(timestamp) {
     if (freezeGame) {
         return;
@@ -610,6 +624,7 @@ function animate() {
     pacmanMovementLogic();
     updatePellets();
     updateGhosts();
+    updatePowerPellets();
     updateBoundaries();
 
     pacman.movement();
@@ -705,7 +720,7 @@ function updateGhosts() {
 }
 
 function updatePowerPellets() {
-    for (let i = powerpellets.length - 1; 0 <= i; i--) {
+    for (let i = powerpellets.length - 1; i >= 0; i--) {
         const powerpellet = powerpellets[i];
         powerpellet.render();
 
@@ -786,7 +801,7 @@ function ghostMovementLogic() {
         if (collisions.length > ghost.prevCollisions.length)
             ghost.prevCollisions = collisions;
 
-        if (JSON.stringify(collisions) !== JSON.stringify(ghost.prevCollisions)) {
+        if (!areArraysEqual(collisions, ghost.prevCollisions)) {
             let direction = '';
 
             if (ghost.velocity.x > 0) {
