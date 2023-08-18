@@ -11,7 +11,6 @@ These are my bullet points:
 - Known Issues / Bugs
 - Credits
 - License
-- Contact Information
 
 # Installation
 
@@ -38,17 +37,17 @@ There is a score count for cosmetic purposes currently. Each pellet is 10 points
 
 # Credits
 
-- ChatGPT
 - IA's Greg & Santiago
 - Lead Eric
 - Geometry
 - Google Images for Board Elements / Online Photo Editor to manipulate PNGs
+- [ChatGPT](https://chat.openai.com/)
 - [ClassicGamingCC for Pac-Man Sounds](https://www.classicgaming.cc/classics/pac-man/sounds)
+- [pacmancode](https://pacmancode.com/)
+- [Canvas JS](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
+- [Overall JS](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+- [Santiago's Platformer Open-Source Code](https://github.com/sdimaren/js-canvas-platformer-prototype)
 
 # License
 
 Namco.
-
-# Contact Information
-
-...
