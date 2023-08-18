@@ -8,9 +8,14 @@
     <script defer src="script.js"></script>
 </head>
 <body>
+    <div id="end-game-message" class="hidden">
+        You Win!
+    </div>
     <p>
         <span>Score: </span><span id="scoreEl">0</span>
     </p>
+    <audio id="startSound" src="sounds/startSound.wav"></audio>
+    <audio id="chompSound" src="sounds/chompSound.wav"></audio>
     <canvas></canvas>
 </body>
 </html>

@@ -43,22 +43,27 @@ Final score + Game Over Screen
 
 /*
 
-/*----- constants -----*/
+/*----- constants & cached els -----*/
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 const scoreEl = document.getElementById('scoreEl');
+const startSound = document.getElementById('startSound');
+const chompSound = document.getElementById('chompSound');
+const endGameMessage = document.getElementById('end-game-message');
 
+let soundTriggered = false;
 let animationId;
 let freezeGame = false;
-let lastTime = 0;
+let lastTime = 0; // Game Loop Stuff
 let score = 0;
 const FRAME_RATE = 60;
 const ANIMATION_SPEED = 0.1;
+chompSound.playbackRate = 5;
+
 
 const spriteSheet = createImage('./img/spriteSheet.png');
-spriteSheet.onload = init; // THIS CALLS INIT FOR THE FIRST TIME
 
 const spriteFrames = {
     red: {
@@ -169,11 +174,7 @@ const KEYBOARD = {
     W: 'w',
     S: 's',
     A: 'a',
-    D: 'd',
-    KEYUP: 'arrowup',
-    KEYDOWN: 'arrowdown',
-    KEYRIGHT: 'arrowright',
-    KEYLEFT: 'arrowleft'
+    D: 'd'
 }
 
 const keys = {
@@ -229,6 +230,29 @@ const powerpellets = [];
 //     ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3'],
 // ]
 
+// const board =  [
+//     ['1', '-', '-', '-', '-', '-', '-', '-', '7', '-', '-', '-', '-', '-', '-', '-', '2'],
+//     ['|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|'],
+//     ['|', ' ', '[', ']', ' ', '[', ']', ' ', '_', ' ', '[', ']', ' ', '[', ']', ' ', '|'],
+//     ['|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|'],
+//     ['|', ' ', '[', ']', ' ', '^', ' ', '[', '7', ']', ' ', '^', ' ', '[', ']', ' ', '|'],
+//     ['|', ' ', ' ', ' ', ' ', '|', ' ', ' ', '|', ' ', ' ', '|', ' ', ' ', ' ', ' ', '|'],
+//     ['4', '-', '-', '2', ' ', '6', ']', ' ', '_', ' ', '[', '8', ' ', '1', '-', '-', '3'],
+//     [' ', ' ', ' ', '|', ' ', '|', ' ', ' ', ' ', ' ', ' ', '|', ' ', '|', ' ', ' ', ' '],
+//     [' ', ' ', ' ', '|', ' ', '_', ' ', '1', '-', '2', ' ', '_', ' ', '|', ' ', ' ', ' '],
+//     [' ', ' ', ' ', '|', ' ', ' ', ' ', '4', '-', '3', ' ', ' ', ' ', '|', ' ', ' ', ' '],
+//     [' ', ' ', ' ', '|', ' ', '^', ' ', ' ', ' ', ' ', ' ', '^', ' ', '|', ' ', ' ', ' '],
+//     ['1', '-', '-', '3', ' ', '_', ' ', '[', '7', ']', ' ', '_', ' ', '4', '-', '-', '2'],
+//     ['|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|'],
+//     ['|', ' ', '[', '2', ' ', '[', ']', ' ', '_', ' ', '[', ']', ' ', '1', ']', ' ', '|'],
+//     ['|', ' ', ' ', '|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|', ' ', '.', '|'],
+//     ['6', ']', ' ', '_', ' ', '^', ' ', '[', '7', ']', ' ', '^', ' ', '_', ' ', '[', '8'],
+//     ['|', ' ', ' ', ' ', ' ', '|', ' ', ' ', '|', ' ', ' ', '|', ' ', ' ', ' ', ' ', '|'],
+//     ['|', ' ', '[', '-', '-', '5', ']', ' ', '_', ' ', '[', '5', '-', '-', ']', ' ', '|'],
+//     ['|', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '|'],
+//     ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3']
+// ];
+
 const board = [
     ['1', '-', '-', '-', '-', '-', '-', '-', '7', '-', '-', '-', '-', '-', '-', '-', '2',],
     ['|', '.', '.', '.', '.', '.', '.', '.', '|', '.', '.', '.', '.', '.', '.', '.', '|',],
@@ -251,6 +275,7 @@ const board = [
     ['|', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '|',],
     ['4', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '3',]
 ]
+
 
 
 let lastKey = '';
@@ -321,6 +346,7 @@ class Ghost {
         this.vulnerable = false;
         this.visible = true;
         this.currentFrame = 0;
+        this.stuck = false;
     }
 
     render(ghostFrameDirection) {
@@ -352,6 +378,10 @@ class Ghost {
     }
 
     movement(ghostFrameDirection) {
+        if (this.stuck) {
+            this.movement(DIRECTION.UP);
+            this.movement(DIRECTION.DOWN);
+        }
         this.render(ghostFrameDirection);
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
@@ -388,6 +418,7 @@ class PowerPellet {
     }
 }
 
+/*----- create objects and their starting locations -----*/
 const pacman = new PacMan({
     position: {
         x: Boundary.width * 8 + Boundary.width / 2,
@@ -422,7 +453,8 @@ const ghosts = [
             y: 0
         },
         color: 'pink',
-        currentFrame: 0
+        currentFrame: 0,
+        // stuck: true
     }),
     new Ghost({
         position: {
@@ -452,33 +484,27 @@ const ghosts = [
 
 /*----- event listeners -----*/
 window.addEventListener('keydown', (event) => {
-    const key = event.key.toLowerCase();
-    console.log(key)
-
-    // Prevent default behavior of arrow keys (scrolling)
-    if (key === KEYBOARD.UP || key === KEYBOARD.DOWN || key === KEYBOARD.LEFT || key === KEYBOARD.RIGHT) {
-        console.log('Arrow Keys are Held')
-        event.preventDefault(); // Corrected this line
-    }
+    const key = event.key;
+    event.preventDefault();
 
     switch (key) {
         case KEYBOARD.W:
-        case KEYBOARD.UP:
+        case 'ArrowUp':
             keys.w.pressed = true;
             lastKey = KEYBOARD.W;
             break;
         case KEYBOARD.A:
-        case KEYBOARD.LEFT:
+        case 'ArrowLeft':
             keys.a.pressed = true;
             lastKey = KEYBOARD.A;
             break;
         case KEYBOARD.S:
-        case KEYBOARD.DOWN:
+        case "ArrowDown":
             keys.s.pressed = true;
             lastKey = KEYBOARD.S;
             break;
         case KEYBOARD.D:
-        case KEYBOARD.RIGHT:
+        case "ArrowRight":
             keys.d.pressed = true;
             lastKey = KEYBOARD.D;
             break;
@@ -486,30 +512,24 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('keyup', (event) => {
-    const key = event.key.toLowerCase();
-    console.log(key)
-
-    // Prevent default behavior of arrow keys (scrolling)
-    if (key === KEYBOARD.UP || key === KEYBOARD.DOWN || key === KEYBOARD.LEFT || key === KEYBOARD.RIGHT) {
-        event.preventDefault(); // Corrected this line
-    }
+    const key = event.key;
+    event.preventDefault();
 
     switch (key) {
         case KEYBOARD.W:
-        case KEYBOARD.UP:
-            console.log('test');
+        case 'ArrowUp':
             keys.w.pressed = false;
             break;
         case KEYBOARD.A:
-        case KEYBOARD.LEFT:
+        case 'ArrowLeft':
             keys.a.pressed = false;
             break;
         case KEYBOARD.S:
-        case KEYBOARD.DOWN:
+        case "ArrowDown":
             keys.s.pressed = false;
             break;
         case KEYBOARD.D:
-        case KEYBOARD.RIGHT:
+        case "ArrowRight":
             keys.d.pressed = false;
             break;
     }
@@ -520,26 +540,53 @@ function init() {
     renderBoard();
 }
 
+function playStartSound() {
+    if (!soundTriggered) {
+        startSound.play();
+        soundTriggered = true;
+    }
+}
+
+function playChompSound() {
+    chompSound.play();
+}
+
 function createImage(src) {
     const image = new Image()
     image.src = src
     return image
-  }
+}
+
+function checkTopBC({circle, rectangle, spacing}) {
+    return circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing;
+}
+
+function checkLeftBC({circle, rectangle, spacing}) {
+    return circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing;
+}
+
+function checkBottomBC({circle, rectangle, spacing}) {
+    return circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing;
+}
+
+function checkRightBC({circle, rectangle, spacing}) {
+    return circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing;
+}
 
 function checkBoundaryCollisions({ circle, rectangle }) {
     const spacing = Boundary.width / 2 - circle.radius - 1;
-    return (circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing 
-        && circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing 
-        && circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing 
-        && circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing)
+    return ( checkTopBC({circle, rectangle, spacing})
+    && checkLeftBC({circle, rectangle, spacing})
+    && checkBottomBC({circle, rectangle, spacing})
+    && checkRightBC({circle, rectangle, spacing}) )
 }
 
 function checkCircleCollisions({ circle1, circle2 }) {
     const dx = circle2.position.x - circle1.position.x;
     const dy = circle2.position.y - circle1.position.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+    const hypot = Math.sqrt(dx * dx + dy * dy);
 
-    return distance <= circle1.radius + circle2.radius;
+    return hypot <= circle1.radius + circle2.radius;
 }
 
 function gameLoop(timestamp) {
@@ -549,6 +596,7 @@ function gameLoop(timestamp) {
     const deltaTime = timestamp - lastTime;
     if (!freezeGame && deltaTime >= 1000 / FRAME_RATE) {
         lastTime = timestamp;
+        playStartSound();
         animate();
     }
     animationId = requestAnimationFrame(gameLoop);
@@ -613,6 +661,7 @@ function animate() {
             // console.log(pellets.length)
             // console.log('Touching');
             pellets.splice(i, 1);
+            playChompSound();
             score += 10;
             scoreEl.innerHTML = score;
         }
@@ -631,7 +680,8 @@ function animate() {
                 }, 1000);
             } else {
                 freezeGame = true;
-                console.log('Game Over');
+                endGameMessage.innerText = 'Game Over'; 
+                endGameMessage.style.display = 'block'; 
             }
         }
     }
@@ -642,6 +692,7 @@ function animate() {
 
         if (checkCircleCollisions({circle1: pacman, circle2: powerpellet})) {
             powerpellets.splice(i, 1);
+            playChompSound();
             score += 50;
             scoreEl.innerHTML = score;
             ghosts.forEach((ghost) => {
@@ -777,17 +828,25 @@ function animate() {
         pacman.rotation = Math.PI * 1.5;
     }
 
-    checkWinner();
+    checkWinner({ circle: pacman });
 }
 
-function checkWinner() {
-    // console.log(pellets.length)
+function checkWinner({circle}) {
+    // console.log('Pellets length:', pellets.length)
+    // console.log('PowerUp length:', powerpellets.length)
     if (pellets.length === 0 && powerpellets.length === 0) {
         cancelAnimationFrame(animationId);
         setTimeout(() => {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(circle.position.x, circle.position.y, circle.radius, circle.radians, Math.PI * 2 - circle.radians);
+            ctx.fillStyle = 'yellow';
+            ctx.fill();
+            ctx.closePath();
+            ctx.restore();
             freezeGame = true;
+            endGameMessage.style.display = 'block'; 
         }, 100);
-        console.log('You Win!');
     }
 }
 
@@ -937,7 +996,6 @@ function renderBoard() {
                                 x: j * Boundary.width,
                                 y: i * Boundary.height
                             },
-                            color: 'blue',
                             image: createImage('./img/pipeConnectorTop.png'),
                         })
                     )
@@ -949,7 +1007,6 @@ function renderBoard() {
                                 x: j * Boundary.width,
                                 y: i * Boundary.height
                             },
-                            color: 'blue',
                             image: createImage('./img/pipeConnectorRight.png'),
                         })
                     )
@@ -961,7 +1018,6 @@ function renderBoard() {
                                 x: j * Boundary.width,
                                 y: i * Boundary.height
                             },
-                            color: 'blue',
                             image: createImage('./img/pipeConnectorBottom.png'),
                         })
                     )
@@ -1002,5 +1058,6 @@ function renderBoard() {
     });
 }
 
-/*----- test area -----*/
+/*----- invoke functions -----*/
+init();
 requestAnimationFrame(gameLoop);
