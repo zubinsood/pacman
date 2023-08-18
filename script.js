@@ -557,28 +557,28 @@ function createImage(src) {
     return image
 }
 
-function checkTopBC({circle, rectangle, spacing}) {
-    return circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + spacing;
+function checkTopBC({circle, rectangle, cushion}) {
+    return circle.position.y - circle.radius + circle.velocity.y <= rectangle.position.y + rectangle.height + cushion;
 }
 
-function checkLeftBC({circle, rectangle, spacing}) {
-    return circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - spacing;
+function checkLeftBC({circle, rectangle, cushion}) {
+    return circle.position.x + circle.radius + circle.velocity.x >= rectangle.position.x - cushion;
 }
 
-function checkBottomBC({circle, rectangle, spacing}) {
-    return circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - spacing;
+function checkBottomBC({circle, rectangle, cushion}) {
+    return circle.position.y + circle.radius + circle.velocity.y >= rectangle.position.y - cushion;
 }
 
-function checkRightBC({circle, rectangle, spacing}) {
-    return circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + spacing;
+function checkRightBC({circle, rectangle, cushion}) {
+    return circle.position.x - circle.radius + circle.velocity.x <= rectangle.position.x + rectangle.width + cushion;
 }
 
 function checkBoundaryCollisions({ circle, rectangle }) {
-    const spacing = Boundary.width / 2 - circle.radius - 1;
-    return ( checkTopBC({circle, rectangle, spacing})
-    && checkLeftBC({circle, rectangle, spacing})
-    && checkBottomBC({circle, rectangle, spacing})
-    && checkRightBC({circle, rectangle, spacing}) )
+    const cushion = Boundary.width / 2 - circle.radius - 1;
+    return ( checkTopBC({circle, rectangle, cushion})
+    && checkLeftBC({circle, rectangle, cushion})
+    && checkBottomBC({circle, rectangle, cushion})
+    && checkRightBC({circle, rectangle, cushion}) )
 }
 
 function checkCircleCollisions({ circle1, circle2 }) {
@@ -607,6 +607,19 @@ function animate() {
     
     // console.log('Last Key:', lastKey)
     // console.log(pacman.velocity.x, pacman.velocity.y)
+    pacmanMovementLogic();
+    updatePellets();
+    updateGhosts();
+    updateBoundaries();
+
+    pacman.movement();
+
+    ghostMovementLogic();
+    pacmanChomp();
+    checkWinner({ circle: pacman });
+}
+
+function pacmanMovementLogic() {
     if (keys.w.pressed && lastKey === KEYBOARD.W) {
         for (let i = 0; i < boundaries.length; i++) {
             const boundary = boundaries[i];
@@ -652,7 +665,9 @@ function animate() {
             }
         }
     }
+}
 
+function updatePellets() {
     for (let i = pellets.length - 1; i >= 0; i--) {
         const pellet = pellets[i];
         pellet.render();
@@ -666,7 +681,9 @@ function animate() {
             scoreEl.innerHTML = score;
         }
     }
+}
 
+function updateGhosts() {
     for (let i = ghosts.length - 1; i >= 0; i--) {
         let ghost = ghosts[i];
         if (checkCircleCollisions({ circle1: pacman, circle2: ghost })) {
@@ -685,7 +702,9 @@ function animate() {
             }
         }
     }
+}
 
+function updatePowerPellets() {
     for (let i = powerpellets.length - 1; 0 <= i; i--) {
         const powerpellet = powerpellets[i];
         powerpellet.render();
@@ -712,7 +731,9 @@ function animate() {
             });
         }
     }
+}
 
+function updateBoundaries() {
     boundaries.forEach((boundary) => {
         boundary.render();
 
@@ -722,9 +743,9 @@ function animate() {
             pacman.velocity.y = 0;
         }
     });
+}
 
-    pacman.movement();
-
+function ghostMovementLogic() {
     ghosts.forEach((ghost) => {
         if (ghost.visible) {
             ghost.animateSprite();
@@ -816,8 +837,9 @@ function animate() {
         }
         // console.log(collisions);
     });
+}
 
-    // PacMan Chomp
+function pacmanChomp() {
     if (pacman.velocity.x > 0) {
         pacman.rotation = 0;
     } else if (pacman.velocity.x < 0) {
@@ -827,8 +849,6 @@ function animate() {
     } else if (pacman.velocity.y < 0) {
         pacman.rotation = Math.PI * 1.5;
     }
-
-    checkWinner({ circle: pacman });
 }
 
 function checkWinner({circle}) {
