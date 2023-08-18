@@ -44,7 +44,7 @@ There is a score count for cosmetic purposes currently. Each pellet is 10 points
 - Geometry
 - Google Images for Board Elements / Online Photo Editor to manipulate PNGs
 - ClassicGamingCC for Pac-Man Sounds
-- https://pacmancode.com/
+- Pacmancode.com
 
 # License
 
