@@ -6,6 +6,10 @@ My app is called Pac Man. One player can play Pac Man on the browser, with the s
 
 ![image](https://github.com/zubinsood/pacman/blob/gh-pages/initialwireframe.png)
 
+# Game Over Screen
+
+![image](https://github.com/zubinsood/pacman/blob/gh-pages/Screenshot%202023-08-18%20at%209.34.24%20AM.png)
+
 # Table of Contents
 
 These are my bullet points:
