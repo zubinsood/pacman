@@ -2,6 +2,10 @@
 
 My app is called Pac Man. One player can play Pac Man on the browser, with the score being kept automatically and game results displayed at then end of a round -- either when a player collects all pellets or when a player collides with an enemy ghost. Users will have the option to play again. In the future, I'd like to add a bigger map, more ghosts, more power-ups, and animations.
 
+# Wireframe
+
+![image](https://github.com/zubinsood/pacman/blob/gh-pages/initialwireframe.png)
+
 # Table of Contents
 
 These are my bullet points:
